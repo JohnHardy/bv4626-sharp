@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+using System.Threading;
+
 using System.IO.Ports;
 
 
@@ -16,6 +18,9 @@ namespace BV4626_Serial
     public class BV4626// : IDisposable
     {
         #region Inner Classes
+
+        public class SelfCheckFailedException : Exception { } ;
+
         /// <summary>
         /// Define a pin mode.
         /// </summary>
@@ -46,17 +51,32 @@ namespace BV4626_Serial
             G = 6,
             H = 7,
         }
+
+
         #endregion
+
+        #region Constants
+
+        //protected const char CR = 0x015;
+        protected const char ESC = '\x001b';
+        protected const char ACK = '*';
+        protected const int DELAY = 100;
+
+        #endregion
+
+        #region Fields
 
         /// <summary>
         /// The serial port wrapper object.
         /// </summary>
         protected SerialPort Serial = null;
 
-        //protected const char CR = 0x015;
-        protected const char ESC = '\x033';
-        protected const char ACK = '\x006';
+        protected byte ioConf = (byte)'\x0000';
 
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>
         /// Construct a new BV4626 class which talks to a device on a specified COM port.
@@ -65,26 +85,25 @@ namespace BV4626_Serial
         public BV4626(String port, int baudrate = 115200, Parity parity = Parity.None)
         {
             // Create the serial port.
-            Serial = new SerialPort(port);//, baudrate, parity);//, 8, StopBits.One);
+            Serial = new SerialPort(port, baudrate, parity,  8, StopBits.Two);
         }
+
+        #endregion
+
+
+
+        #region Serial Communication
 
         /// <summary>
         /// Open the serial communications with the BV4626.
         /// </summary>
         public void Open()
         {
-            //Serial.DtrEnable = true;
-            //Serial.RtsEnable = true;
 
-            //Serial.DtrEnable = true;
-            //Serial.DtrEnable = false;
-            //System.Threading.Thread.Sleep(50);
-
-            // Open it.
             Serial.Open();
 
-            // Handshake.
             Handshake();
+
         }
 
         /// <summary>
@@ -92,7 +111,6 @@ namespace BV4626_Serial
         /// </summary>
         public void Close()
         {
-            // Close the serial port.
             Serial.Close();
         }
 
@@ -101,41 +119,61 @@ namespace BV4626_Serial
         /// </summary>
         public bool IsOpen { get { return Serial.IsOpen; } }
 
-        #region Helper Methods
         /// <summary>
-        /// Perfrom a handshake.
+        /// Perform and handshake and set the ACK to a * as a self test.
+        /// Will take at least 1.2 seconds due to the delay bug
         /// </summary>
         /// <remarks>For this device, '*' is sent back only once so a second handshake attempt will produce an error.</remarks>
         protected void Handshake()
         {
-            /*
-            //Serial.BaseStream.Flush();
-            Serial.Write(new byte[] {13}, 0, 1);
-            //System.Threading.Thread.Sleep(500);
+            String buf = "";
+            bool selfCheck = false;
 
-            // Read in.
-            var count = Serial.Read(tBuffer, 0, 1);
-            if (count == 0)
-                throw new Exception("No data");
+            /* Perform a board reset - wait for rhe board to come alive again */
+            Serial.DtrEnable = true;
+            Serial.DtrEnable = false;
+            System.Threading.Thread.Sleep(8*DELAY);
 
+            /* Write a carriage return in order to auto set the baud */
+            Serial.Write(new char[] { '\x000D' }, 0, 1);
+            System.Threading.Thread.Sleep(3*DELAY);
+            if(Serial.BytesToRead > 0)
+            {
+                buf = Serial.ReadExisting();
+                if (buf == "*")
+                {
+                    /* First time hand shake. */
+                }
 
-            if (tBuffer[0] != '*')
-                throw new Exception("Error in first time handshake.");
-            */
+            }
 
-            Serial.Write("\r");
+            /* As a self check, set the ACK character to a * */
+            Serial.Write(new char[]{'\x001b', '[', '4','2', 'E'},0,5);
+            System.Threading.Thread.Sleep(2*DELAY);
 
-            var b = new byte[512];
-            var count = Serial.Read(b, 0, 1);
-            if (count == 0)
-                throw new Exception("WWdfjslkjf");
-            if (b[0] == (byte)'*')
-                Console.WriteLine("boom");
+            /* The above call returns nothing, check the firmware to check the ACK character */
+            Serial.Write(new char[]{'\x001b', '[', '?', '3','1', 'f'},0,6);
+            System.Threading.Thread.Sleep(2*DELAY);
+            if (Serial.BytesToRead > 0)
+            {
+                buf = Serial.ReadExisting();
+                if (buf == "12*")
+                {
+                    selfCheck = true;
+                }
+            }
+
+            // If the self check 
+            if (!selfCheck)
+            {
+                throw new SelfCheckFailedException();
+            }
         }
 
         protected void SendCommand(String command)
         {
             Serial.Write(ESC + command);
+            System.Threading.Thread.Sleep(DELAY);
             ReadToACK();
         }
 
@@ -146,6 +184,7 @@ namespace BV4626_Serial
         {
             // Push the command.
             Serial.Write(ESC + command);
+            System.Threading.Thread.Sleep(DELAY);
 
             // Output buffer.
             var sb = new StringBuilder();
@@ -336,67 +375,15 @@ namespace BV4626_Serial
         private int _DACY = 0;
         #endregion
 
-        /*
-        /// <summary>
-        /// Access the IO pins.  This always executes a serial call.
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns></returns>
-        public byte this[Pins index]
-        {
-            get
-            {
-                // Read the pin.
-                //int pinvalue;
-                //if (!int.TryParse(SendCommandRead("[r"), out pinvalue))
-                //    throw new Exception("Unable to read pin values.");
-
-                // Convert it to a byte array.
-                //bool[] b = new bool[8];
-                //for (int i = 0; i < 8; ++i)
-                //    b[i] = (pinvalue & (1<<i)) != 0;
-
-                // Return the bit of the byte array that we want.
-                return pinvalue & (1<<((int)index));
-            }
-            set
-            {
-                // Check that the pin is in output mode.
-                //if (_PinMode[(int)index] == PinMode.Input)
-                //    throw new Exception("Cannot write to pin "+index+" when in input mode.");
-
-                // Write to the pin.
-                SendCommand("[" + ((int)index).ToString() + "s");
-            }
-        }
+        #region IO pins
 
         /// <summary>
-        /// Read or write the value of all the pin modes in a single byte.
-        /// In binary, 0 = PinMode.Output and 1 = PinMode.Input.
-        /// To set channels 1-4 (a,b,c,d) as input and the rest as output
-        /// the byte value required would be 00001111 (0x0F in hex and 15 in dec).
+        /// Get/Set individual pin data
+        /// For example: myDevice[BV4626.Pins.A] = T/F;
         /// </summary>
-        public byte PinModes
-        {
-            get
-            {
-                return byte.Parse(SendCommandRead("[r"));
-            }
-            set
-            {
-                // Push to the device.
-                SendCommand("[" + value + "s");
-            }
-        }
-        */
-
-        /// <summary>
-        /// Set individual pins to be either input or output.
-        /// For example: myDevice[BV4626.Pins.A] = BV4626.PinMode.Input;
-        /// </summary>
-        /// <param name="index">The index of the pin you want to set.</param>
-        /// <returns>The mode of the pin at that value.</returns>
-        public PinMode this[Pins index]
+        /// <param name="index">The index of the pin you want to index.</param>
+        /// <returns>The value of that pin</returns>
+        public bool this[Pins index]
         {
             get
             {
@@ -404,31 +391,57 @@ namespace BV4626_Serial
                 var pins = byte.Parse(SendCommandRead("[r"));
 
                 // Return the value of the pin we are interested in.
-                return (pins & (1<<((int)index))) != 0 ? PinMode.Input : PinMode.Output;
+                return (pins & (1<<((int)index))) == 1 ? false : true;
 
-                // Write them 
-                //return _PinMode[(int)index];
             }
             set
             {
-                // Read the latest values from the device.
-                var pins = byte.Parse(SendCommandRead("[r"));
-
-                // Compute the pin set.
-                //int pinset = 0;
-                //for (int i = 0; i < 8; ++i)
-                //    if (_PinMode[i] == PinMode.Input)
-                //        pinset |= 1 << i;
-                pins |= (byte)(1 << (int)index);
-
                 // Push to the device.
-                SendCommand("[" + pins + "s");
+                SendCommand("[" + ((value)? "255" : "0") + index.ToString().ToLower());
 
-                // Set the value.
-                //_PinMode[(int)index] = value;
             }
         }
-        //protected PinMode[] _PinMode = new PinMode[8];
+
+        /// <summary>
+        /// Get IO Byte
+        /// </summary>
+        public byte IO
+        {
+            get { return byte.Parse(SendCommandRead("[r")); }
+        }
+
+        /// <summary>
+        /// Get/Set the IO Conf byte
+        /// </summary>
+        public byte IOConf
+        {
+            get { return ioConf; }
+            set
+            {
+
+                // Push to the device.
+                SendCommand("[" + ((int)value).ToString() + "s");
+                ioConf = value;
+
+            }
+        }
+
+        /// <summary>
+        /// Get an updated configuration byte from the current byte
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <param name="mode"></param>
+        /// <returns></returns>
+        public byte AdjustAndReturnIOConf(Pins pin, PinMode mode)
+        {
+            byte conf = IOConf;
+
+            conf |= (byte)((int)mode << (int)pin);
+
+            return conf;
+        }
+
+        #endregion
     }
 
 
