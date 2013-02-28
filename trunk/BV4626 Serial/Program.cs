@@ -8,44 +8,45 @@ namespace BV4626_Serial
 {
     class Program
     {
+
+        const int DELAY = 100;
+
         static void Main(string[] args)
         {
-            SerialPort port = new SerialPort("COM4", 9600, Parity.None, 8, StopBits.One);
+            String buf;
 
-            port.DtrEnable = false;
-            port.RtsEnable = false;
+            BV4626 board = new BV4626("COM7");
 
-            port.Open();
+            try
+            {
+                board.Open();
 
-            
-            port.Write("\r");
+                board.RelayA = true;
+                board.RelayA = false;
+                board.RelayB = true;
+                board.RelayB = false;
+
+                board.IOConf = board.AdjustAndReturnIOConf(BV4626.Pins.A, BV4626.PinMode.Input);
+                board.IOConf = board.AdjustAndReturnIOConf(BV4626.Pins.H, BV4626.PinMode.Output);
+                
+                board[BV4626.Pins.H] = true;
+
+                while (!board[BV4626.Pins.A]) 
+                {
+                    Console.WriteLine(board[BV4626.Pins.H].ToString() + " -> " + board[BV4626.Pins.A].ToString() );
+                };
+
+                Console.WriteLine("Button");
+            }
+            catch (BV4626.SelfCheckFailedException e)
+            {
+                Console.WriteLine("Self Check Failed");
+            }
 
 
-            Console.WriteLine("reading");
-            int buf = port.ReadByte();
-            if (buf == '*')
-                Console.WriteLine("Boom!");
 
-            port.Close();
-            
-            /*
-            // Write available ports.
-            var tPorts = SerialPort.GetPortNames();
-            foreach (var sPort in tPorts)
-                Console.WriteLine("Port: " + sPort);
-
-            //Console.Read();
-            var device = new BV4626("COM4");//, 9600);
-            device.Open();
-            
-            device.RelayA = true;
-            System.Threading.Thread.Sleep(100);
-
-            device.RelayA = false;
-            System.Threading.Thread.Sleep(100);
-
-            device.Close();
-            */
+            board.Close();
+            Console.ReadLine();
         }
     }
 }
