@@ -580,7 +580,10 @@ namespace BV4626_Serial
         /// </summary>
         public byte IOByte
         {
-            get { return byte.Parse(SendCommandRead("[r")); }
+            get {
+                String b = SendCommandRead("[r");
+                return (b != "") ? byte.Parse(b) : (byte)0; 
+            }
         }
 
         /// <summary>
@@ -736,6 +739,7 @@ namespace BV4626_Serial
 
             // Store the updated pins value.
             _LastPins = pins;
+
         }
         #endregion
 
