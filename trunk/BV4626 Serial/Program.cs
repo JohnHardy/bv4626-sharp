@@ -138,7 +138,45 @@ namespace BV4626_Serial
         /// <param name="args"></param>
         static void Main(string[] args)
         {
-            BV4626WebSocketRequestHandler hand = new BV4626WebSocketRequestHandler("COM5");
+            // List the ports.
+            var ports = SerialPort.GetPortNames();
+            foreach (var port in ports)
+            {
+                Console.WriteLine("Available: " + port);
+            }
+
+            // If we have one serial port, use that - otherwise prompt.
+            var sPort = ports.Length == 1 ? ports[0] : "";
+            while (sPort == "")
+            {
+                var key = Console.ReadKey(true);
+                sPort = "COM" + key.KeyChar;
+                if (!ports.Contains(sPort))
+                {
+                    Console.WriteLine("Bad port.  Try again!");
+                    sPort = "";
+                }
+
+            }
+
+            BV4626WebSocketRequestHandler hand = new BV4626WebSocketRequestHandler(sPort);
+
+            /* Relay board can only handle the curent for 5 relays, which brings our total to 7 */
+
+            /* AWKWARD Caveat - plug in the IO header between C-H so A and B are not plugged in. 
+             * We can get around this if we power the relay board seperately */
+            //hand.Board.SetPinMode(BV4626.Pins.A, BV4626.PinMode.Input);
+            //hand.Board.SetPinMode(BV4626.Pins.B, BV4626.PinMode.Input);
+            //hand.Board.SetPinMode(BV4626.Pins.C, BV4626.PinMode.Input);
+            //hand.Board.SetPinMode(BV4626.Pins.D, BV4626.PinMode.Input);
+            //hand.Board.SetPinMode(BV4626.Pins.E, BV4626.PinMode.Input);
+            //hand.Board.SetPinMode(BV4626.Pins.F, BV4626.PinMode.Output);
+            //hand.Board.SetPinMode(BV4626.Pins.G, BV4626.PinMode.Output);
+            //hand.Board.SetPinMode(BV4626.Pins.H, BV4626.PinMode.Output);
+
+            //hand.Board.SetPinValue(BV4626.Pins.F, 255);
+            //hand.Board.SetPinValue(BV4626.Pins.G, 255);
+            //hand.Board.SetPinValue(BV4626.Pins.H, 255);
 
 
             // Create a web socket server that listens on port 81 for any IP.

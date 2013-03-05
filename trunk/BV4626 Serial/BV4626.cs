@@ -113,7 +113,7 @@ namespace BV4626_Serial
         /// <summary>
         /// The thread timeout used when starting up the board.
         /// </summary>
-        protected const int DELAY = 100;
+        protected const int DELAY = 200;
         #endregion
 
         #region Fields
