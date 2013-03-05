@@ -32,7 +32,7 @@ namespace BV4626_Serial
         /// </summary>
         protected ConcurrentDictionary<UserContext, string> OnlineUsers = new ConcurrentDictionary<UserContext, string>();
 
-        protected BV4626 Board = null;
+        public BV4626 Board = null;
 
         #endregion
 

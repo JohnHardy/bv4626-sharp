@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+<script type="text/javascript">
+
+
+/***********************************************************
+* start of handy functions to use
+*/
+
+	var PIN_LIST = ["A", "B", "C", "D", "E", "F", "G", "H"];
+	var pin_callbacks = [];
+	var socket;
+
+	/** Returns true if the socket is connected, false if not */
+	function isConnected(){
+		return false;
+	}
+
+	/** Once called will continually try to connect to the web socket,
+	* if disconnected, will continue to reconnect */
+	function autoconnect(){
+			var host = "ws://localhost:81/bv4626/";
+
+			/* initialise the callback array if it is empty */
+			if( pin_callbacks.length == 0 ){
+				_initCallbackArray();
+			}
+
+			
+			try{
+				socket = new WebSocket(host);
+				socket.onopen = function(){
+					isConnected =function(){ return true; };
+					message('<p class="event">IsConnected?: '+isConnected());	
+				}
+				
+				socket.onmessage = pinEventHandler;
+				
+				socket.onclose = function(){
+					isConnected =function(){ return false; };
+					message('<p class="event">IsConnected?: '+isConnected());	
+					autoconnect();
+				}
+					
+			} catch(exception){
+				autoconnect();
+			}
+	}
+
+	/* resets/initialises the "associative array" for pin callbacks */
+	function _initCallbackArray(){
+		for(i in PIN_LIST) {
+			pin_callbacks[PIN_LIST[i]] = [];
+		}
+	}
+
+	/* on message from the board, calls subscribed functions */
+	function pinEventHandler(msg){
+
+		json_object = JSON.parse(msg.data);
+
+		// Determine pin for event and get subscribers
+		func_array = pin_callbacks[json_object["Pin"]]
+
+		// Call subscribers
+		for(i in func_array){
+			func_array[i](json_object["Pin"], json_object["Value"]);
+		}
+	}
+
+	/** Adds a function tot he subscriber list for given pin events.
+	* function must be of the form func(String pin, String value), where
+	* pin is "A"..."H" and value is "on"/"off"
+	*
+	* @param pin		"A"..."H"
+	*/
+	function addPinHandler(pin, func){
+
+		// Add function to subscriber list
+		pin_callbacks[pin].push(func);
+
+	}
+
+	/** Sends a command to the board.
+	*
+	* @param comm    string of "PinA"..."PinH", "RelayA", "RelayB"
+	* @param valu		 string saying "on", "off", "input", "output"
+	*/
+	function send(comm, valu){
+		var json_text = {Commands : [{ Command : comm, Value : valu }]};
+		var json = JSON.stringify(json_text, null, 2);
+		try{
+			socket.send(json);
+		} catch(exception){
+			message('<p class="warning">');
+		}
+	}
+
+/***********************************************************
+* end of handy functions to use
+*/
+
+	function message(msg){
+		$('#chatLog').append(msg+'</p>');
+	}//End message()
+
+$(document).ready(function() {
+	
+	if(!("WebSocket" in window)){
+		$('#chatLog, input, button, #examples').fadeOut("fast");	
+		$('<p>Oh no, you need a browser that supports WebSockets. How about <a href="http://www.google.com/chrome">Google Chrome</a>?</p>').appendTo('#container');		
+	}else{
+		//The user has WebSockets
+
+
+/**********************************************************************
+* Demo of how to use the functions
+*/
+		autoconnect();
+
+		addPinHandler("A", function(pin, valu){                
+			message('<p class="message">Received: '+pin+': '+valu);					
+			if(valu === "on") {
+				send("RelayA", "off");
+			} else {
+				send("RelayA", "on");
+			}
+		});
+		
+	}
+		
+});
+</script>
+<meta charset=utf-8 />
+<style type="text/css">
+body{font-family:Arial, Helvetica, sans-serif;}
+#container{
+	border:5px solid grey;
+	width:800px;
+	margin:0 auto;
+	padding:10px;
+}
+#chatLog{
+	padding:5px;
+	border:1px solid black;	
+}
+#chatLog p{margin:0;}
+.event{color:#999;}
+.warning{
+	font-weight:bold;
+	color:#CCC;
+}
+</style>
+<title>WebSockets Client</title>
+
+</head>
+<body>
+  <div id="wrapper">
+  
+  	<div id="container">
+    
+    	<h1>WebSockets Client</h1>
+        
+        <div id="chatLog">
+        
+        </div>
+        <p id="examples">e.g. try 'hi', 'name', 'age', 'today'</p>
+        
+        <select id="command" name="command">
+					<option value="RelayA">Relay A</option>
+					<option value="RelayB">Relay B</option>
+					<option value="PinA">Pin A</option>
+					<option value="PinB">Pin B</option>
+					<option value="PinC">Pin C</option>
+					<option value="PinD">Pin D</option>
+					<option value="PinE">Pin E</option>
+					<option value="PinF">Pin F</option>
+					<option value="PinG">Pin G</option>
+					<option value="PinH">Pin H</option>
+				</select>
+
+        <select id="value" name="value">
+					<option value="on">On</option>
+					<option value="off">Off</option>
+					<option value="input">Input</option>
+					<option value="output">Output</option>
+				</select>
+        <button id="send">Send</button>
+        <button id="disconnect">Disconnect</button>
+
+	</div>
+  
+  </div>
+</body>
+</html>​
