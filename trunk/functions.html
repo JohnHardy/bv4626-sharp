@@ -13,11 +13,6 @@
 	var pin_callbacks = [];
 	var socket;
 
-	/** Returns true if the socket is connected, false if not */
-	function isConnected(){
-		return false;
-	}
-
 	/** Once called will continually try to connect to the web socket,
 	* if disconnected, will continue to reconnect */
 	function autoconnect(){
@@ -32,15 +27,15 @@
 			try{
 				socket = new WebSocket(host);
 				socket.onopen = function(){
-					isConnected =function(){ return true; };
-					message('<p class="event">IsConnected?: '+isConnected());	
 				}
 				
 				socket.onmessage = pinEventHandler;
 				
 				socket.onclose = function(){
-					isConnected =function(){ return false; };
-					message('<p class="event">IsConnected?: '+isConnected());	
+					autoconnect();
+				}
+
+				socket.onerror = function(){
 					autoconnect();
 				}
 					
