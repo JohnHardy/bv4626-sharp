@@ -1,0 +1,11 @@
+C:\Users\John\Desktop\New folder\BV4626Web\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\John\Desktop\New folder\BV4626Web\bin\Debug\BV4626Web.exe.config
+C:\Users\John\Desktop\New folder\BV4626Web\bin\Debug\BV4626Web.exe
+C:\Users\John\Desktop\New folder\BV4626Web\bin\Debug\BV4626Web.pdb
+C:\Users\John\Desktop\New folder\BV4626Web\bin\Debug\Alchemy.dll
+C:\Users\John\Desktop\New folder\BV4626Web\bin\Debug\BV4626 Serial.exe
+C:\Users\John\Desktop\New folder\BV4626Web\bin\Debug\Newtonsoft.Json.dll
+C:\Users\John\Desktop\New folder\BV4626Web\bin\Debug\BV4626 Serial.pdb
+C:\Users\John\Desktop\New folder\BV4626Web\bin\Debug\Newtonsoft.Json.xml
+C:\Users\John\Desktop\New folder\BV4626Web\obj\x86\Debug\BV4626Web.exe
+C:\Users\John\Desktop\New folder\BV4626Web\obj\x86\Debug\BV4626Web.pdb
