@@ -87,13 +87,18 @@ namespace BV4626_Serial
         /// <param name="context"></param>
         public void OnReceive(UserContext context)
         {
-            Console.WriteLine("Received Data from : " + context.ClientAddress);
+            
 
             /* This method pretty much will only work with valid json and expected objects.
              * The catch exception is a much needed catch all from wrong types, to malformed errors */
             try
             {
                 var json = context.DataFrame.ToString();
+
+                if (json == "ping")
+                    return;
+
+                Console.WriteLine("Received Data from : " + context.ClientAddress);
 
                 dynamic json_obj = JsonConvert.DeserializeObject(json);
 

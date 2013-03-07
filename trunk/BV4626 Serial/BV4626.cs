@@ -37,7 +37,7 @@ namespace BV4626_Serial
     /// </summary>
     /// <author>Carl Ellis and John Hardy</author>
     /// <date>Feb 2013</date>
-    public class BV4626// : IDisposable
+    public class BV4626
     {
         #region Inner Classes
         /// <summary>

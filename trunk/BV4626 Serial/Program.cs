@@ -28,24 +28,25 @@ using System.Linq;
 using System.Text;
 using System.IO.Ports;
 
-using Alchemy;
-using Alchemy.Classes;
-using Alchemy.Handlers;
-using System.Net;
-
+using BV4626_Serial;
 
 namespace BV4626_Serial
 {
+    /// <summary>
+    /// A simple program which starts up the BV4626, clicks a few relays, changes some pin states and then reports any pin change events.
+    /// </summary>
     class Program 
     {
-       /* static void Main(string[] args)
+        static void Main(string[] args)
         {
             // List the ports.
             var ports = SerialPort.GetPortNames();
             foreach (var port in ports)
             {
-                Console.WriteLine("Available: " + port);
+                Console.WriteLine("1) " + port);
             }
+            if (ports.Length > 1)
+                Console.WriteLine("Please select a port: ");
 
             // If we have one serial port, use that - otherwise prompt.
             var sPort = ports.Length == 1 ? ports[0] : "";
@@ -61,9 +62,9 @@ namespace BV4626_Serial
 
             }
 
-
+            // Connect to the board.
             Console.WriteLine("Connecting on port " + sPort);
-            BV4626 board = new BV4626(sPort);  //new BV4626("COM3");
+            BV4626 board = new BV4626(sPort);
 
             try
             {
@@ -117,91 +118,15 @@ namespace BV4626_Serial
             }
             catch (BV4626.SelfCheckFailedException e)
             {
-                Console.WriteLine("Self Check Failed");
+                Console.WriteLine("BV4626 self check failed.");
             }
 
-
-
+            // Close the connection with the board.
             board.Close();
-            Console.ReadLine();
+            Console.WriteLine("Press any key to continue.");
+            Console.ReadKey();
         }
-            */
 
-        /// <summary>
-        /// Store the socket server.
-        /// </summary>
-        private static WebSocketServer pServer = null;
-
-        /// <summary>
-        /// When we start up, create the server and bind some events.
-        /// </summary>
-        /// <param name="args"></param>
-        static void Main(string[] args)
-        {
-            // List the ports.
-            var ports = SerialPort.GetPortNames();
-            foreach (var port in ports)
-            {
-                Console.WriteLine("Available: " + port);
-            }
-
-            // If we have one serial port, use that - otherwise prompt.
-            var sPort = ports.Length == 1 ? ports[0] : "";
-            while (sPort == "")
-            {
-                var key = Console.ReadKey(true);
-                sPort = "COM" + key.KeyChar;
-                if (!ports.Contains(sPort))
-                {
-                    Console.WriteLine("Bad port.  Try again!");
-                    sPort = "";
-                }
-
-            }
-
-            BV4626WebSocketRequestHandler hand = new BV4626WebSocketRequestHandler(sPort);
-
-            /* Relay board can only handle the curent for 5 relays, which brings our total to 7 */
-
-            /* AWKWARD Caveat - plug in the IO header between C-H so A and B are not plugged in. 
-             * We can get around this if we power the relay board seperately */
-            //hand.Board.SetPinMode(BV4626.Pins.A, BV4626.PinMode.Input);
-            //hand.Board.SetPinMode(BV4626.Pins.B, BV4626.PinMode.Input);
-            //hand.Board.SetPinMode(BV4626.Pins.C, BV4626.PinMode.Input);
-            //hand.Board.SetPinMode(BV4626.Pins.D, BV4626.PinMode.Input);
-            //hand.Board.SetPinMode(BV4626.Pins.E, BV4626.PinMode.Input);
-            //hand.Board.SetPinMode(BV4626.Pins.F, BV4626.PinMode.Output);
-            //hand.Board.SetPinMode(BV4626.Pins.G, BV4626.PinMode.Output);
-            //hand.Board.SetPinMode(BV4626.Pins.H, BV4626.PinMode.Output);
-
-            //hand.Board.SetPinValue(BV4626.Pins.F, 255);
-            //hand.Board.SetPinValue(BV4626.Pins.G, 255);
-            //hand.Board.SetPinValue(BV4626.Pins.H, 255);
-
-
-            // Create a web socket server that listens on port 81 for any IP.
-            pServer = new WebSocketServer(81, IPAddress.Any)
-            {
-                OnReceive = hand.OnReceive,
-                OnConnect = hand.OnConnect,
-                OnDisconnect = hand.OnDisconnect,
-                TimeOut = new TimeSpan(0, 5, 0)
-            };
-
-            // Start that server.
-            pServer.Start();
-
-            var command = string.Empty;
-            while (command != "exit")
-            {
-                command = Console.ReadLine();
-                System.Threading.Thread.Yield();
-            }
-
-            pServer.Stop();
-
-
-        }
 
     }
 }
